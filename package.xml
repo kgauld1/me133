@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>hw56code</name>
+  <name>sf_me133</name>
   <version>0.0.0</version>
-  <description>Code for 133a HW5 and HW6</description>
+  <description>Code for 133a Final Project</description>
 
   <!-- A maintainer and license tag are required, but leave as todo -->
   <maintainer email="robot@todo.todo">robot</maintainer>
