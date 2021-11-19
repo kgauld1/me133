@@ -41,7 +41,7 @@
 	name="robot_spawner"
 	respawn="false"
 	output="screen"
-	args="-urdf -model sevendof -param robot_description"/>
+	args="-urdf -model panda -file $(find sf_me133)/urdf/dual_panda_example.urdf"/>
 	
 
   <!-- Load the controllers. -->
