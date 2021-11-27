@@ -131,8 +131,14 @@ class Generator:
                                'panda_2_joint3', 'panda_2_joint4',
                                'panda_2_joint5', 'panda_2_joint6',
                                'panda_2_joint7', 'panda_2_finger_joint1']
-        cmdmsg.position     = np.array([0, 0, 0, 0, 0 ,0 ,0 ,0 ,0 , 0,0 ,0 , 0, 0, 0 ,0 ]) # theta
-        cmdmsg.velocity     = np.array([0, 0, 0, 0, 0 ,0 ,0 ,0 ,0 , 0,0 ,0 , 0, 0, 0 ,0 ]) # thetadot
+        cmdmsg.position     = np.array([t/10, t/10, t/10, t/10,
+                                        t/10, t/10, t/10, t/10,
+                                        t/10, t/10, t/10, t/10,
+                                        t/10, t/10, t/10, t/10 ]) # theta
+        cmdmsg.velocity     = np.array([1/10, 1/10, 1/10, 1/10,
+                                        1/10, 1/10, 1/10, 1/10,
+                                        1/10, 1/10, 1/10, 1/10,
+                                        1/10, 1/10, 1/10, 1/10 ]) # thetadot
         cmdmsg.header.stamp = rospy.Time.now()
         self.pub.publish(cmdmsg)
 
