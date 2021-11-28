@@ -1,0 +1,24 @@
+<launch>
+  <!-- Define general parameters.  These can be overwritten by the
+       roslaunch command line. -->
+
+  <arg name="cfg"   default="$(find sf_me133)/rviz/viewurdf.rviz"/>
+
+
+  
+  <node pkg="ballmarker" type="ballmarker" name="ballmarker_node" output="screen" />
+
+
+
+  <!-- Run the rviz visualization, with viewfourR.rviz config file -->
+  
+  <node pkg ="rviz"
+	type="rviz"
+	name="rviz" args="-d $(arg cfg)"
+	output="screen"
+	required="true"/>
+ 
+
+</launch>
+
+
