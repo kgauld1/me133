@@ -98,11 +98,21 @@
   </joint>
 
   <link name="wrist"/>
-
+  
   <joint name="final" type="fixed">
     <parent link="link7"/>
-    <child  link="tip"/>
+    <child link="slink"/>
     <origin xyz="0 0.15 0" rpy="1.5708 0 3.1416"/>
+  </joint>
+  
+  <link name="slink"/>
+  
+  <joint name="stretch" type="prismatic">
+    <parent link="slink"/>
+    <child  link="tip"/>
+    <limit effort="1000.0" lower="-0.03" upper="0.15" velocity="0.5"/>
+    <origin xyz="0 -0.045 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
   </joint>
 
   <link name="tip"/>
@@ -563,7 +573,7 @@
   </link>
 
   <joint name="attach-cube-left" type="fixed">
-    <parent link="tip"/>
+    <parent link="slink"/>
     <child  link="cube-left"/>
   </joint>
   <link name="cube-left">
