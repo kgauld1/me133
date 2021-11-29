@@ -5,80 +5,20 @@ import math
 import rospy
 
 from visualization_msgs.msg import Marker
-
-#from abc import ABCMeta, abstractmethod
-#import math
-
-#import tf.broadcaster
-#import rospy
-#from visualization_msgs.msg import Marker
-#from geometry_msgs.msg import PoseStamped
+from visualization_msgs.msg import MarkerArray
 
 
-class Generator:
-    # Initialize.
+class Ball:
 	def __init__(self):
-        # Create a publisher to send the joint commands.  Add some time
-        # for the subscriber to connect.  This isn't necessary, but means
-        # we don't start sending messages until someone is listening.
-
-#        topic = 'visualization_marker_array'
-#        self.pub = rospy.Publisher(topic, MarkerArray, queue_size=1)
-#        rosp.sleep(0.25)
-#        markerArray = MarkerArray()
-#        count = 0
-#        MARKERS_MAX = 100
-        
-#		tf_broadcaster = tf.broadcaster.TransformBroadcaster()
-		self.pub = rospy.Publisher('visualization_marker', Marker, queue_size=10)
+		self.t = 0.0
 		self.pos = np.array([0.0, 0.5, 0.0])
-        
-        ### INPUT VELOCITY AND ANGLE HERE FROM GUI
+		### RANDOMIZE LATER
 		self.vel = 0.25
 		self.xyangle = np.pi / 2 # direction launched in xy plane
-
-	def pd(self, t): ### JANKY MATH, FIX
-		x = self.vel*np.cos(t)*np.cos(self.xyangle)
-		y = self.vel*np.cos(t)*np.sin(self.xyangle)
-		z = self.vel*np.sin(t) - 0.5 * 9.8 * np.square(t)
+		self.projangle = np.pi / 2
 		
-#		print(self.vel)
-#		print(self.xyangle)
-#		
-#		print(np.array([x,y,z]))
-
-		return np.array([x, y, z]).reshape((3,1))
-    	
-	
-	def vd(self, t):
-		x = self.vel*np.sin(t)*np.cos(self.xyangle)
-		y = self.vel*np.sin(t)*np.sin(self.xyangle)
-		z = self.vel*np.cos(t)
 		
-		return np.array([x,y,z]).reshape((3,1))
-		
-	def reset_check(self, t):
-		if (self.pos[2] < 0.0):
-		
-			print('in here')
-			self.pos = np.array([0.0, 0.5, 0.0])
-			
-			### CHECK NEW GIVEN PARAMS
-			self.vel = 0.25
-			self.xyangle = np.pi / 2
-			print(self.pos)
-	
-    # Update is called every 10ms!
-	
-	def update(self, t):
-		
-		## ORIENTATION DOESNT MATTER - IGNORE FOR NOW
-	#    quat_mat = T.quaternion_matrix(quat_goal)
-	#    quat_goal = T.quaternion_from_matrix(quat_mat)
-	#    tf_broadcaster.sendTransform(tuple(pos_goal), (quat_goal[1],quat_goal[2],quat_goal[3],quat_goal[0]), rospy.Time.now(), 'ik_goal', 'common_world')
-
-		self.reset_check(t)
-		
+		### CREATE NEW MARKER
 		marker = Marker()
 		marker.header.frame_id = 'common_world'
 		marker.id = 100
@@ -101,12 +41,99 @@ class Generator:
 		marker.color.r = 0.0
 		marker.color.g = 0.9
 		marker.color.b = 0.2
-		self.pub.publish(marker)
+		return marker
 		
-		self.pos = self.pd(t)
-		self.vel = np.linalg.norm(self.vd(t))
+	
+	def pd(self, dt): ### JANKY MATH, FIX
+		x = self.vel*np.cos(self.projangle)*np.cos(self.xyangle) * t
+		y = self.vel*np.cos(self.projangle)*np.sin(self.xyangle) * t
+		z = self.vel*np.sin(self.projangle)*t - 0.5 * 9.8 * np.square(t)
 		
-		print(self.pos)
+		return np.array([x, y, z]).reshape((3,1))
+
+	def vd(self, t):
+		x = self.vel*np.sin(self.projangle)*np.cos(self.xyangle)
+		y = self.vel*np.sin(self.projangle)*np.sin(self.xyangle)
+		z = self.vel*np.cos(self.projangle) - 9.8 * t
+		
+		return np.array([x,y,z]).reshape((3,1))
+		
+	def move(self, dt, marker): ### no need to update everything (?)
+#		marker = Marker()
+#		marker.header.frame_id = 'common_world'
+#		marker.id = 100
+#		marker.ns = 'launched_ball'
+#		marker.type = marker.SPHERE
+#		marker.action = marker.ADD					
+		marker.pose.position.x = self.pos[0]
+		marker.pose.position.y = self.pos[1]
+		marker.pose.position.z = self.pos[2]
+		
+#		marker.pose.orientation.x = 0.0;
+#		marker.pose.orientation.y = 0.0;
+#		marker.pose.orientation.z = 0.0;
+#		marker.pose.orientation.w = 1.0;
+#		
+#		marker.scale.x = .05
+#		marker.scale.y = .05
+#		marker.scale.z = .05
+#		marker.color.a = 1
+#		marker.color.r = 0.0
+#		marker.color.g = 0.9
+#		marker.color.b = 0.2
+		
+		self.pos = Ball.pd(self, self.t)
+		self.vel = np.linalg.norm(Ball.vd(self, self.t))
+		self.t = self.t + dt	
+		return marker
+	
+
+		
+
+class Generator:
+    # Initialize.
+	def __init__(self):
+        # Create a publisher to send the joint commands.  Add some time
+        # for the subscriber to connect.  This isn't necessary, but means
+        # we don't start sending messages until someone is listening.
+
+		self.pub = rospy.Publisher('visualization_marker_array', MarkerArray, queue_size=10)
+		rospy.sleep(0.25)
+		self.array = MarkerArray()
+		self.count = 0
+		self.MARKERS_MAX = 5
+	
+		self.timer = 0.0
+
+	
+    # Update is called every 10ms!
+	
+	def update(self, t, dt):
+		
+		if (self.timer >= 1.0): #### TO FIX
+			newball = Ball.__init__(self)
+			self.array.markers.append(newball)
+			   # Renumber the marker IDs
+			id = 0
+			for m in self.array.markers: ### 
+				m.id = id
+				id += 1
+			
+
+		for marker in self.array.markers:
+			marker = Ball.move(self, dt, marker)
+			
+#		if(self.count > self.MARKERS_MAX):
+#			self.array.markers.pop(0)
+
+
+
+   # Publish the MarkerArray
+		self.pub.publish(self.array)
+
+		self.count += 1
+		self.timer = self.timer + dt
+		
 
 
 #  Main Code
@@ -132,7 +159,7 @@ if __name__ == "__main__":
     while not rospy.is_shutdown():
 
         # Update the controller.
-        generator.update(t)
+        generator.update(t, dt)
 
 
         # Wait for the next turn.  The timing is determined by the
