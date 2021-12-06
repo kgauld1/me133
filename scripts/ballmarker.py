@@ -96,16 +96,14 @@ class Generator:
 	
 	def update(self, t, dt):
 		
-		if (self.timer >= 1.0): #### TO FIX
+		if (self.timer >= 1.0): #### TO FIX -- fixed? 12/5
 		
 			self.timer = 0.0
-			newball = Ball.__init__(self)
+			newball = Ball()
 			self.array.markers.append(newball)
 			   # Renumber the marker IDs
-			id = 0
-			for m in self.array.markers: ### 
-				m.id = id
-				id += 1
+            for id in range(len(self.array.markers)):
+                self.array.markers[id].id = id
 			
 
 		for marker in self.array.markers:
