@@ -1,128 +1,101 @@
 #!/usr/bin/env python3
-
-import numpy as np
-import math
+#
+#   ballmarker.py
+#
+#   Publish:    /visualization_marker_array     visualization_msgs/MarkerArray
+#
+import sys
 import rospy
+import numpy as np
 
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 
 
-class Ball:
-	def __init__(self):
-		self.t = 0.0
-		self.pos = np.array([0.0, 0.5, 0.0])
-		### RANDOMIZE LATER
-		self.vel = 0.25
-		self.xyangle = np.pi / 2 # direction launched in xy plane
-		self.projangle = np.pi / 2
-		
-		
-		### CREATE NEW MARKER
-		marker = Marker()
-		marker.header.frame_id = "world"
-		marker.header.stamp = rospy.Time.now()
-		marker.id = 100
-		marker.ns = "launched_ball"
-		marker.type = marker.SPHERE
-		marker.action = marker.ADD					
-		marker.pose.position.x = self.pos[0]
-		marker.pose.position.y = self.pos[1]
-		marker.pose.position.z = self.pos[2]
-		
-		marker.pose.orientation.x = 0.0;
-		marker.pose.orientation.y = 0.0;
-		marker.pose.orientation.z = 0.0;
-		marker.pose.orientation.w = 1.0;
-		
-		marker.scale.x = .05
-		marker.scale.y = .05
-		marker.scale.z = .05
-		marker.color.a = 1
-		marker.color.r = 0.0
-		marker.color.g = 0.9
-		marker.color.b = 0.2
-		return marker
-		
-	
-	def pd(self, dt): ### JANKY MATH, FIX
-		x = self.vel*np.cos(self.projangle)*np.cos(self.xyangle) * t
-		y = self.vel*np.cos(self.projangle)*np.sin(self.xyangle) * t
-		z = self.vel*np.sin(self.projangle)*t - 0.5 * 9.8 * np.square(t)
-		
-		return np.array([x, y, z]).reshape((3,1))
+#  Marker Publisher
+#
+#  This continually publishes the marker array.
+#
+class MarkerPublisher:
+    def __init__(self, p0):
+        # Prepare the publishers (latching for new subscribers).
+        self.pub_mark  = rospy.Publisher("/visualization_marker_array",
+                                         MarkerArray,
+                                         queue_size=1, latch=True)
 
-	def vd(self, t):
-		x = self.vel*np.sin(self.projangle)*np.cos(self.xyangle)
-		y = self.vel*np.sin(self.projangle)*np.sin(self.xyangle)
-		z = self.vel*np.cos(self.projangle) - 9.8 * t
-		
-		return np.array([x,y,z]).reshape((3,1))
-		
-	def move(self, dt, marker): ### no need to update everything (?)
-				
-		marker.pose.position.x = self.pos[0]
-		marker.pose.position.y = self.pos[1]
-		marker.pose.position.z = self.pos[2]
-		
-		
-		self.pos = Ball.pd(self, self.t)
-		self.vel = np.linalg.norm(Ball.vd(self, self.t))
-		self.t = self.t + dt	
-		return marker
-	
+        # Create the sphere marker.
+        self.marker = Marker()
+        self.marker.header.frame_id    = "world"
+        self.marker.header.stamp       = rospy.Time.now()
+        self.marker.action             = Marker.ADD
+        self.marker.ns                 = "point"
+        self.marker.id                 = 1
+        self.marker.type               = Marker.SPHERE
+        self.marker.pose.orientation.x = 0.0
+        self.marker.pose.orientation.y = 0.0
+        self.marker.pose.orientation.z = 0.0
+        self.marker.pose.orientation.w = 1.0
+        self.marker.pose.position.x    = p0[0]
+        self.marker.pose.position.y    = p0[1]
+        self.marker.pose.position.z    = p0[2]
+        self.marker.scale.x            = .05
+        self.marker.scale.y            = .05
+        self.marker.scale.z            = .05
+        self.marker.color.a            = 1
+        self.marker.color.r            = 0.0
+        self.marker.color.g            = 0.9
+        self.marker.color.b            = 0.2
 
-		
+
+        # Create the marker array message.
+        self.mark = MarkerArray()
+        self.mark.markers.append(self.marker)
+
+    def update(self, p):
+        self.marker.pose.position.x    = p[0]
+        self.marker.pose.position.y    = p[1]
+        self.marker.pose.position.z    = p[2]
+
+    def publish(self):
+        # Publish.
+        now = rospy.Time.now()
+        self.marker.header.stamp = now
+        self.pub_mark.publish(self.mark)
+
+    def loop(self):
+        # Prepare a servo loop at 10Hz.
+        servo = rospy.Rate(10)
+        rospy.loginfo("Point-Publisher publication thread running at 10Hz...")
+
+        # Loop: Publish and sleep
+        while not rospy.is_shutdown():
+            self.publish()
+            servo.sleep()
+
+        # Report the cleanup.
+        rospy.loginfo("Point-Publisher publication thread ending...")
 
 class Generator:
     # Initialize.
-	def __init__(self):
+    def __init__(self):
         # Create a publisher to send the joint commands.  Add some time
         # for the subscriber to connect.  This isn't necessary, but means
         # we don't start sending messages until someone is listening.
+        self.count = 0
+        self.timer = 0 
 
-		self.pub = rospy.Publisher("/visualization_marker_array",
-                                         MarkerArray,
-                                         queue_size=10, latch=True)
-		rospy.sleep(0.25)
-		self.array = MarkerArray()
-		self.count = 0
-		self.MARKERS_MAX = 5
-	
-		self.timer = 0.0
+        self.p0 = [0, 0.2, 0.2]
+        self.ppub = MarkerPublisher(self.p0)
 
-	
+    
     # Update is called every 10ms!
-	
-	def update(self, t, dt):
-		
-		if (self.timer >= 1.0): #### TO FIX -- fixed? 12/5
-		
-			self.timer = 0.0
-			newball = Ball()
-			self.array.markers.append(newball)
-			   # Renumber the marker IDs
-            for id in range(len(self.array.markers)):
-                self.array.markers[id].id = id
-			
+    def update(self, t, dt): 
+        self.ppub.publish()
+#        self.ppub.update([0, 0.2, np.sin(t)])
+        self.ppub.update([0, np.sin(t), np.sin(t)])
 
-		for marker in self.array.markers:
-			marker = Ball.move(self, dt, marker)
-			
-#		if(self.count > self.MARKERS_MAX):
-#			self.array.markers.pop(0)
-
-
-
-   # Publish the MarkerArray
-   
-		
-		self.pub.publish(self.array)
-
-		self.count += 1
-		self.timer = self.timer + dt
-		
-
+        self.count += 1
+        self.timer = self.timer + dt
 
 #  Main Code
 #
