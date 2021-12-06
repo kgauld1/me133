@@ -20,9 +20,10 @@ class Ball:
 		
 		### CREATE NEW MARKER
 		marker = Marker()
-		marker.header.frame_id = 'common_world'
+		marker.header.frame_id = "world"
+		marker.header.stamp = rospy.Time.now()
 		marker.id = 100
-		marker.ns = 'launched_ball'
+		marker.ns = "launched_ball"
 		marker.type = marker.SPHERE
 		marker.action = marker.ADD					
 		marker.pose.position.x = self.pos[0]
@@ -59,28 +60,11 @@ class Ball:
 		return np.array([x,y,z]).reshape((3,1))
 		
 	def move(self, dt, marker): ### no need to update everything (?)
-#		marker = Marker()
-#		marker.header.frame_id = 'common_world'
-#		marker.id = 100
-#		marker.ns = 'launched_ball'
-#		marker.type = marker.SPHERE
-#		marker.action = marker.ADD					
+				
 		marker.pose.position.x = self.pos[0]
 		marker.pose.position.y = self.pos[1]
 		marker.pose.position.z = self.pos[2]
 		
-#		marker.pose.orientation.x = 0.0;
-#		marker.pose.orientation.y = 0.0;
-#		marker.pose.orientation.z = 0.0;
-#		marker.pose.orientation.w = 1.0;
-#		
-#		marker.scale.x = .05
-#		marker.scale.y = .05
-#		marker.scale.z = .05
-#		marker.color.a = 1
-#		marker.color.r = 0.0
-#		marker.color.g = 0.9
-#		marker.color.b = 0.2
 		
 		self.pos = Ball.pd(self, self.t)
 		self.vel = np.linalg.norm(Ball.vd(self, self.t))
@@ -97,7 +81,9 @@ class Generator:
         # for the subscriber to connect.  This isn't necessary, but means
         # we don't start sending messages until someone is listening.
 
-		self.pub = rospy.Publisher('visualization_marker_array', MarkerArray, queue_size=10)
+		self.pub = rospy.Publisher("/visualization_marker_array",
+                                         MarkerArray,
+                                         queue_size=10, latch=True)
 		rospy.sleep(0.25)
 		self.array = MarkerArray()
 		self.count = 0
@@ -111,6 +97,8 @@ class Generator:
 	def update(self, t, dt):
 		
 		if (self.timer >= 1.0): #### TO FIX
+		
+			self.timer = 0.0
 			newball = Ball.__init__(self)
 			self.array.markers.append(newball)
 			   # Renumber the marker IDs
@@ -129,6 +117,8 @@ class Generator:
 
 
    # Publish the MarkerArray
+   
+		
 		self.pub.publish(self.array)
 
 		self.count += 1

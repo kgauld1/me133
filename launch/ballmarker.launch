@@ -8,9 +8,9 @@
   <node pkg="sf_me133" 
   	type="ballmarker.py" 
   	name="ballmarker_node" 
-  	output="screen" />
-
-
+  	output="screen" 
+  	required="true"/>
+	
   <!-- Load the URDF file into the robot_description parameter. -->
   <param name="robot_description" textfile="$(arg model)"/>
 
@@ -38,4 +38,5 @@
 	required="true"/>
 
 </launch>
+
 
