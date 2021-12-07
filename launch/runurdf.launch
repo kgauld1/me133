@@ -1,7 +1,7 @@
 <launch>
   <!-- Define general parameters.  These can be overwritten by the
        roslaunch command line. -->
-  <arg name="urdf"  default="dual_panda_example.urdf"/>
+  <arg name="urdf"  default="sevenDOF_sword.urdf"/>
   <arg name="model" default="$(find sf_me133)/urdf/$(arg urdf)"/>
   <arg name="cfg"   default="$(find sf_me133)/rviz/viewurdf.rviz" />
 
@@ -12,7 +12,7 @@
 
   <!-- Instead of a GUI, we use program a trajectory generator. -->
   <node pkg ="sf_me133"
-	type="controllerbase.py"
+	type="controller.py"
 	name="gen">
   </node>
 
