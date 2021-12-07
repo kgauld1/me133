@@ -115,7 +115,11 @@ def T_from_URDF_axisangle(axis, theta):
 def e_from_URDF_axis(axis):
     return np.array(axis).reshape((3,1))
 
-
+def T_from_URDF_axisdisp(axis, disp):
+    return np.array([[1, 0, 0, axis[0]*disp],
+                     [0, 1, 0, axis[1]*disp],
+                     [0, 0, 1, axis[2]*disp],
+                     [0, 0, 0, 1]])
 
 #
 #   Kinematics Class
@@ -153,11 +157,11 @@ class Kinematics:
                       self.dofs, len(self.joints))
 
 
-    def fkin(self, theta):
+    def fkin(self, pos):
         # Check the number of joints
-        if (len(theta) != self.dofs):
-            rospy.logerr("Number of joint angles (%d) does not match URDF (%d)",
-                         len(theta), self.dofs)
+        if (len(pos) != self.dofs):
+            rospy.logerr("Number of joint positions (%d) does not match URDF (%d)",
+                         len(pos), self.dofs)
             return
 
         # Initialize the T matrix to walk up the chain
@@ -168,6 +172,7 @@ class Kinematics:
         # each in a python, and keep an index counter.
         plist = []
         elist = []
+        jtype = []
         index = 0
 
         # Walk the chain, one URDF <joint> entry at a time.  Each can
@@ -182,9 +187,9 @@ class Kinematics:
                 
             elif (joint.type == 'continuous'):
                 # First append the fixed transform, then rotating
-                # transform.  The joint angle comes from theta-vector.
+                # transform.  The joint angle comes from position-vector.
                 T = T @ T_from_URDF_origin(joint.origin)
-                T = T @ T_from_URDF_axisangle(joint.axis, theta[index])
+                T = T @ T_from_URDF_axisangle(joint.axis, pos[index])
 
                 # Save the position
                 plist.append(p_from_T(T))
@@ -192,11 +197,29 @@ class Kinematics:
                 # Save the joint axis.  The URDF <axis> is given in
                 # the local frame, so multiply by the local R matrix.
                 elist.append(R_from_T(T) @ e_from_URDF_axis(joint.axis))
+                
+                jtype.append(joint.type)
 
                 # Advanced the "active/moving" joint number 
                 index += 1
+            
+            elif (joint.type == 'prismatic'):
+                # Adjust for joint angle
+                T = T @ T_from_URDF_origin(joint.origin)
+                # Translate based on joint position
+                T = T @ T_from_URDF_axisdisp(joint.axis, pos[index])
+                
+                plist.append(p_from_T(T))
+                
+                elist.append((R_from_T(T) @ e_from_URDF_axis(joint.axis))*pos[index])
+                
+                jtype.append(joint.type)
+                
+                index += 1
+                
+                pass
     
-            elif (joint.type != 'fixed'):
+            else:
                 # There shouldn't be any other types...
                 rospy.logwarn("Unknown Joint Type: %s", joint.type)
 
@@ -205,9 +228,15 @@ class Kinematics:
         ptip = p_from_T(T)
         J    = np.zeros((6,index))
         for i in range(index):
-            J[0:3,i:i+1] = np.cross(elist[i], ptip-plist[i], axis=0)
-            J[3:6,i:i+1] = elist[i]
-
+            if jtype[i] == 'continuous':
+                J[0:3,i:i+1] = np.cross(elist[i], ptip-plist[i], axis=0)
+                J[3:6,i:i+1] = elist[i]
+            elif jtype[i] == 'prismatic':
+                J[0:3,i:i+1] = elist[i]
+                J[3:6,i:i+1] = 0
+            print(jtype[i])
+            
+                
         # Return the Ttip and Jacobian (at the end of the chain).
         return (T,J)
 
@@ -228,7 +257,7 @@ if __name__ == "__main__":
     kin = Kinematics(robot, 'world', 'tip')
 
     # Pick the test angles of the robot.
-    theta = [np.pi/4, np.pi/6, np.pi/3]
+    theta = [np.pi/4, np.pi/6, np.pi/3, np.pi/4, np.pi/6, np.pi/3, np.pi/4, 0.02]
 
     # Compute the kinematics.
     (T,J) = kin.fkin(theta)
