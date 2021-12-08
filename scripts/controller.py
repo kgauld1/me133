@@ -16,6 +16,8 @@ from urdf_parser_py.urdf import Robot
 # Import the kinematics stuff:
 from kinematics import Kinematics, p_from_T, R_from_T, Rx, Ry, Rz
 
+from trajectory import Trajectory
+
 from splines import Goto, Hold, Goto5
 
 
@@ -37,7 +39,7 @@ class Generator:
 
         # Instantiate the Kinematics
         self.kin = Kinematics(robot, 'world', 'tip')
-                         
+        self.traj = Trajectory()                 
         # Initialize starting time t0, lambda, and the joint angle config q
         self.t0    = 0.0
         self.tlag  = 0.0
@@ -139,7 +141,8 @@ class Generator:
         # Update the current simulation time
         self.tlag = t
         
-        
+        # todo track if ball collides
+        # reset self.traj on collision
         
         # Create and send the joint state message.
         cmdmsg = JointState()
@@ -162,7 +165,9 @@ if __name__ == "__main__":
 
     # Instantiate the trajectory generator object, encapsulating all
     # the computation and local variables.
-    generator = Generator()
+
+
+    traj = Trajectory()
 
     # Prepare a servo loop at 100Hz.
     rate  = 100;
@@ -172,6 +177,8 @@ if __name__ == "__main__":
                   (dt, rate))
                   
     starttime = rospy.Time.now()
+    
+    
     
     while not rospy.is_shutdown():
 
