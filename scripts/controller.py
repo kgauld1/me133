@@ -44,13 +44,14 @@ class Generator:
         self.lmbd  = 10
         self.lmbd_sec = 2
         self.gam   = 0.5
-        self.q = np.array([0.0,-0.7,0.6,1.3,0.0,0.9,0.01]).reshape(-1,1) # Holds starting angle
+        self.q = np.array([0.0, -0.7, 0.6,  1.3,
+                           0.0,  0.9, 0.01, .001 ]).reshape(-1,1) # Holds starting angle
         self.index = 0
     
     # Return the desired position given time
     def pd(self, t):
         return np.array([0.0, 
-                         0.95 - 0.25*math.cos(t), 
+                         0.95 - 10.25*math.cos(t), 
                          0.15 + 0.9*math.sin(t)]).reshape(3,1)
     
     # Retun the desired rotation given s
@@ -60,7 +61,7 @@ class Generator:
     # Return the desired velocity given s, sdot
     def vd(self, t):
         return np.array([0, 
-                         0.25*math.sin(t), 
+                         10.25*math.sin(t), 
                          0.9*math.cos(t)]).reshape(3,1)
     
     # Return the desired omega given s, sdot
@@ -89,6 +90,10 @@ class Generator:
         
         # Find the transformation matrix and the inverted jacobian
         (T, J) = self.kin.fkin(self.q)
+        
+        inrange = -0.06 <= self.q[7] <= 0.06
+        
+        
         J_inv = np.linalg.inv((J.T @ J) + (np.eye(J.shape[1]) * self.gam**2)) @ J.T
         
         # Get the current position and rotation from the transformation matrix
@@ -106,21 +111,41 @@ class Generator:
                            -self.q[3] - np.pi/4,
                            -self.q[4],
                            -self.q[5],
-                           -self.q[6]]).reshape(-1,1)
+                           -self.q[6], 
+                           -self.q[7]]).reshape(-1,1)
+                           
                            
         # Compute the new q and qdot with the secondary task
         qdot = J_inv @ (v_goal + self.lmbd*x_til) +\
-               ((np.eye(7) - (J_inv @ J)) @ (self.lmbd_sec*qdot_s))
-        self.q += dt * qdot
+               ((np.eye(8) - (J_inv @ J)) @ (self.lmbd_sec*qdot_s))
+        
+        
+        
+        inrange = -0.06 <= self.q[7] + qdot[7][0][0]*dt <= 0.06
+        
+        if not inrange:
+            J = np.delete(J, -1, axis=1)
+            J_inv = np.linalg.inv((J.T @ J) + (np.eye(J.shape[1]) * self.gam**2)) @ J.T
+            
+            qdot_s = np.delete(qdot_s, -1, axis=0)
+            
+            qdot = J_inv @ (v_goal + self.lmbd*x_til) +\
+                   ((np.eye(7) - (J_inv @ J)) @ (self.lmbd_sec*qdot_s))
+            self.q[0:7] += np.array([qdot[x][0][0] for x in range(7)]).reshape(-1,1)*dt
+        
+        else:
+            self.q += np.array([x[0][0] for x in qdot]).reshape(-1,1)*dt # dt * qdot
         
         # Update the current simulation time
         self.tlag = t
         
         
+        
         # Create and send the joint state message.
         cmdmsg = JointState()
         cmdmsg.name = ['theta1', 'theta2', 'theta3',
-                       'theta4', 'theta5', 'theta6', 'theta7']
+                       'theta4', 'theta5', 'theta6', 
+                       'theta7', 'stretch']
         cmdmsg.position = self.q
         cmdmsg.velocity = qdot
         cmdmsg.header.stamp = rospy.Time.now()

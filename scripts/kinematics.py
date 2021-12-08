@@ -205,6 +205,7 @@ class Kinematics:
             
             elif (joint.type == 'prismatic'):
                 # Adjust for joint angle
+                
                 T = T @ T_from_URDF_origin(joint.origin)
                 # Translate based on joint position
                 T = T @ T_from_URDF_axisdisp(joint.axis, pos[index])
@@ -234,7 +235,6 @@ class Kinematics:
             elif jtype[i] == 'prismatic':
                 J[0:3,i:i+1] = elist[i]
                 J[3:6,i:i+1] = 0
-            print(jtype[i])
             
                 
         # Return the Ttip and Jacobian (at the end of the chain).
@@ -257,7 +257,7 @@ if __name__ == "__main__":
     kin = Kinematics(robot, 'world', 'tip')
 
     # Pick the test angles of the robot.
-    theta = [np.pi/4, np.pi/6, np.pi/3, np.pi/4, np.pi/6, np.pi/3, np.pi/4, 0.02]
+    theta = [np.pi/4, np.pi/6, np.pi/3, np.pi/4, np.pi/6, np.pi/3, np.pi/4, 0.08]
 
     # Compute the kinematics.
     (T,J) = kin.fkin(theta)
