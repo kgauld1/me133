@@ -9,6 +9,7 @@
 import rospy
 import numpy as np
 import math
+import random
 
 from sensor_msgs.msg     import JointState
 from urdf_parser_py.urdf import Robot
@@ -53,16 +54,30 @@ class Generator:
         self.q = np.array([0.0, -0.7, 0.6,  1.3,
                            0.0,  0.9, 0.01, .001 ]).reshape(-1,1) # Holds starting angle
         self.index = 0
+        
+        self.count = 0
+        self.timer = 0 
+
+        self.p0 = [0, 0.2, 0.2]
+        self.ppub = MarkerPublisher(self.p0)
     
     def init_traj():
         # resets self.traj
-        return
+        # randomize paramaters
+        
+        vel = random.randrange(1,7)
+        angle = random.randrange(20,80)
+        xy = random.randrange(-45,45)
+        return Trajectory(vel,angle,xy)
+        
+
     
     # Return the desired position given time
     def pd(self, t):
-        return np.array([0.0, 
-                         0.95 - 10.25*math.cos(t), 
-                         0.15 + 0.9*math.sin(t)]).reshape(3,1)
+        return self.traj.getPath(t)
+#        return np.array([0.0, 
+#                         0.95 - 10.25*math.cos(t), 
+#                         0.15 + 0.9*math.sin(t)]).reshape(3,1)
     
     # Retun the desired rotation given s
     def Rd(self, t):
@@ -70,6 +85,13 @@ class Generator:
     
     # Return the desired velocity given s, sdot
     def vd(self, t):
+    ##### SDIHFUVBIABS
+        (T,J) = self.kin.fkin(self.q)
+        p = p_from_T(T)
+        
+        dp = p
+         
+    
         return np.array([0, 
                          10.25*math.sin(t), 
                          0.9*math.cos(t)]).reshape(3,1)
@@ -163,6 +185,22 @@ class Generator:
         cmdmsg.velocity = qdot
         cmdmsg.header.stamp = rospy.Time.now()
         self.pub.publish(cmdmsg)
+        
+        ## if statements here
+        
+        if self.pd(t)[2] < 0 or ball hits sword:
+            self.traj = init_traj()
+
+            
+            
+        
+        ## Ball Marker
+        self.ppub.publish()
+#        self.ppub.update([0, 0.2, np.sin(t)])
+        self.ppub.update([self.pd(t)[0], self.pd(t)[1], self.pd(t)[2]])
+
+        self.count += 1
+        self.timer = self.timer + dt
 
 
 
