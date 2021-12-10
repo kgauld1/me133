@@ -17,6 +17,7 @@ from urdf_parser_py.urdf import Robot
 from kinematics import Kinematics, p_from_T, R_from_T, Rx, Ry, Rz
 
 from trajectory import Trajectory
+from ballmarker import MarkerPublisher
 
 from splines import Goto, Hold, Goto5
 
@@ -37,9 +38,12 @@ class Generator:
         # Grab the robot's URDF from the parameter server.
         robot = Robot.from_parameter_server()
 
+        
         # Instantiate the Kinematics
         self.kin = Kinematics(robot, 'world', 'tip')
-        self.traj = Trajectory()                 
+        self.traj = self.init_traj()
+        
+                     
         # Initialize starting time t0, lambda, and the joint angle config q
         self.t0    = 0.0
         self.tlag  = 0.0
@@ -49,6 +53,10 @@ class Generator:
         self.q = np.array([0.0, -0.7, 0.6,  1.3,
                            0.0,  0.9, 0.01, .001 ]).reshape(-1,1) # Holds starting angle
         self.index = 0
+    
+    def init_traj():
+        # resets self.traj
+        return
     
     # Return the desired position given time
     def pd(self, t):
@@ -79,6 +87,8 @@ class Generator:
         return 0.5*(np.cross(R[:,0:1], Rd[:,0:1], axis=0) +
                     np.cross(R[:,1:2], Rd[:,1:2], axis=0) +
                     np.cross(R[:,2:3], Rd[:,2:3], axis=0))
+    def getTraj():
+        return self.traj
     
     # Update is called every 10ms!
     def update(self, t):
@@ -165,9 +175,9 @@ if __name__ == "__main__":
 
     # Instantiate the trajectory generator object, encapsulating all
     # the computation and local variables.
+    generator = Generator()
 
-
-    traj = Trajectory()
+    #traj = Trajectory()
 
     # Prepare a servo loop at 100Hz.
     rate  = 100;
