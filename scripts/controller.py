@@ -26,6 +26,10 @@ from ballmarker import MarkerPublisher
 from splines import Goto, Hold, Goto5
 
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 #
 #  Generator Class
 #
@@ -44,15 +48,16 @@ class Generator:
         
         # Instantiate the Kinematics
         self.kin = Kinematics(robot, 'world', 'tip')
-        self.reset_traj()
+        self.reset_traj(0)
         
                      
         # Initialize starting time t0, lambda, and the joint angle config q
         self.t0    = 0.0
+        self.trst  = 0.0
         self.tlag  = 0.0
         self.lmbd  = 10
         self.lmbd_sec = 2
-        self.gam   = 1
+        self.gam   = 0.5
         self.q = np.array([0.0, -0.7, 0.6,  1.3,
                            0.0,  0.9, 0.01, .001 ]).reshape(-1,1) # Holds starting angle
         self.index = 0
@@ -61,7 +66,7 @@ class Generator:
         self.timer = 0 
         self.ppub = MarkerPublisher(self.traj.getPath(0).tolist())
     
-    def reset_traj(self):
+    def reset_traj(self, t):
         # resets self.traj
         # randomize paramaters
         
@@ -69,12 +74,13 @@ class Generator:
         angle = random.randrange(20,80)*np.pi/180
         xy = random.randrange(-45,45)*np.pi/180
         self.traj = Trajectory(vel,angle,xy)
+        self.trst = t
         
 
     
     # Return the desired position given time
     def pd(self, t):
-         return self.traj.getPath(t).reshape(3,1)
+         return self.traj.getPath(t-self.trst).reshape(3,1)
 #        return np.array([0, np.sin(t), np.sin(t)]).reshape(3,1)
 #       
 # return np.array([0.0, 
@@ -150,10 +156,10 @@ class Generator:
                            -self.q[4],
                            -self.q[5],
                            -self.q[6], 
-                           -self.q[7]]).reshape(-1,1)
+                           -self.q[7]]).reshape(-1,1)*1.5
                            
                            
-        qdot_s = np.array([0,0,0,0,0,0,0,-self.q[7]]).reshape(-1,1)
+        #qdot_s = np.array([0,0,0,0,0,0,0,-self.q[7]]).reshape(-1,1)
                            
                            
         # Compute the new q and qdot with the secondary task
@@ -205,10 +211,12 @@ class Generator:
         (Tnew, Jnew) = self.kin.fkin(self.q)
         cpos = p_from_T(Tnew)
         
-        if (dpos[2] < 0) or (abs(cpos[0]-dpos[0])<=0.045 and
-                             abs(cpos[1]-dpos[1])<=0.045 and
-                             abs(cpos[2]-dpos[2])<=0.045):
-            self.ppub.update([0, 2.0, 0])
+        if (dpos[2] < 0) or (abs(cpos[0]-dpos[0])<=0.04 and
+                             abs(cpos[1]-dpos[1])<=0.04 and
+                             abs(cpos[2]-dpos[2])<=0.04):
+             self.reset_traj(t)
+
+#            self.ppub.update([0, 2.0, 0])
 
             
             
@@ -242,6 +250,7 @@ if __name__ == "__main__":
     starttime = rospy.Time.now()
     
     
+    for i in range(100): servo.sleep()
     
     while not rospy.is_shutdown():
 

@@ -5,6 +5,7 @@
 import math
 import numpy as np
 import rospy
+import random
 
 
 class Trajectory:
@@ -13,7 +14,13 @@ class Trajectory:
         # angle: launch angle, 
         # xyangle: direction launched (xy plane)
         
-        self.pos = np.array([0.5, 2.0, 0.0])
+        
+#        self.pos = np.array([random.randrange(-20,20)/10, 2, 0.0])
+#        self.pos = np.array([random.randrange(-20,20)/10, 4.0, 0.0])
+#        self.pos = np.array([2 * random.choice([-1,1]), 2, 0.001]) 
+        
+#        self.pos = np.array([0.0, 10.0, 1]) 
+        self.pos = np.array([0.0, 0.0, 10]) 
         self.vel = velocity
         self.angle = angle
         self.xyangle = xyangle
@@ -23,25 +30,19 @@ class Trajectory:
         return
         
     def getPath(self, t):
-        vx = self.vel*np.cos(self.angle)*np.cos(self.xyangle)
-        vy = self.vel*np.cos(self.angle)*np.sin(self.xyangle)
-        vz = self.vel*np.sin(self.angle) - self.grav * t
+#        vx = self.vel*np.cos(self.angle)*np.cos(self.xyangle)
+#        vy = self.vel*np.cos(self.angle)*np.sin(self.xyangle)
+#        vz = self.vel*np.sin(self.angle) - self.grav * t
         
-        
-        
-#        vz = self.vel*np.sin(self.angle)
-
 
         
+        w = np.pi / 2
+        x = self.pos[0]#+ 0.5*t*(-1 if self.pos[0] > 0 else 1)
+        y = self.pos[1]# - 0.75*t
+        z = self.pos[2] - 0.5*t #2*np.sin(w*y)
         
-        
-        
-        # todo -- get p of the ball for a time t 
-        # print (np.array([self.pos[0]+vx*t, self.pos[1]+vy*t, self.pos[2]+vz*t - 0.5*self.grav*t**2]))
-        
-        y = 2.0 - 0.05*t
-        w = np.pi / 4
-        return np.array([0,y,2*np.sin(w*y)])
+#        return np.array([x,y,2*np.sin(w*y)])
+        return np.array([x,y,z])
         
         
         
