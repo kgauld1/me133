@@ -26,10 +26,6 @@ from ballmarker import MarkerPublisher
 from splines import Goto, Hold, Goto5
 
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 #
 #  Generator Class
 #

@@ -19,8 +19,8 @@ class Trajectory:
 #        self.pos = np.array([random.randrange(-20,20)/10, 4.0, 0.0])
 #        self.pos = np.array([2 * random.choice([-1,1]), 2, 0.001]) 
         
-#        self.pos = np.array([0.0, 10.0, 1]) 
-        self.pos = np.array([0.0, 0.0, 10]) 
+#        self.pos = np.array([0.0, 5.0, 1]) 
+        self.pos = np.array([0.0, 0.5, 0.0]) 
         self.vel = velocity
         self.angle = angle
         self.xyangle = xyangle
@@ -36,10 +36,12 @@ class Trajectory:
         
 
         
-        w = np.pi / 2
+        w = np.pi / 4
         x = self.pos[0]#+ 0.5*t*(-1 if self.pos[0] > 0 else 1)
-        y = self.pos[1]# - 0.75*t
-        z = self.pos[2] - 0.5*t #2*np.sin(w*y)
+        y = self.pos[1] - 0.75*t
+#        z = self.pos[2] - 0.5*t #2*np.sin(w*y)
+        z = 2*np.sin(w*y)
+#        z = self.pos[2]
         
 #        return np.array([x,y,2*np.sin(w*y)])
         return np.array([x,y,z])
