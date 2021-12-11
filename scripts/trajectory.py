@@ -13,11 +13,11 @@ class Trajectory:
         # angle: launch angle, 
         # xyangle: direction launched (xy plane)
         
-        self.pos = np.array([0.0, 2.0, 0.0])
+        self.pos = np.array([2.0, 2.0, 2.0])
         self.vel = velocity
         self.angle = angle
         self.xyangle = xyangle
-        self.grav = 2.0
+        self.grav = .05
     
     	# todo -- define path in terms of t (or just set params)
         return
@@ -32,7 +32,7 @@ class Trajectory:
         
         
         # todo -- get p of the ball for a time t 
-        print (np.array([self.pos[0]+vx*t, self.pos[1]+vy*t, self.pos[2]+vz*t - 0.5*self.grav*t**2]))
+        # print (np.array([self.pos[0]+vx*t, self.pos[1]+vy*t, self.pos[2]+vz*t - 0.5*self.grav*t**2]))
         
         return np.array([self.pos[0]+vx*t, 
                          self.pos[1]+vy*t, 

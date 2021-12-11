@@ -13,6 +13,9 @@ import random
 
 from sensor_msgs.msg     import JointState
 from urdf_parser_py.urdf import Robot
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
+
 
 # Import the kinematics stuff:
 from kinematics import Kinematics, p_from_T, R_from_T, Rx, Ry, Rz
@@ -22,6 +25,28 @@ from ballmarker import MarkerPublisher
 
 from splines import Goto, Hold, Goto5
 
+
+class Generator:
+    # Initialize.
+    def __init__(self):
+        # Create a publisher to send the joint commands.  Add some time
+        # for the subscriber to connect.  This isn't necessary, but means
+        # we don't start sending messages until someone is listening.
+        self.count = 0
+        self.timer = 0 
+
+        self.p0 = [0, 0.2, 0.2]
+        self.ppub = MarkerPublisher(self.p0)
+
+    
+    # Update is called every 10ms!
+    def update(self, t, dt): 
+        self.ppub.publish()
+#        self.ppub.update([0, 0.2, np.sin(t)])
+        self.ppub.update([0, np.sin(t), np.sin(t)])
+
+        self.count += 1
+        self.timer = self.timer + dt
 
 
 #
@@ -42,7 +67,7 @@ class Generator:
         
         # Instantiate the Kinematics
         self.kin = Kinematics(robot, 'world', 'tip')
-        self.traj = self.init_traj()
+        self.reset_traj()
         
                      
         # Initialize starting time t0, lambda, and the joint angle config q
@@ -50,32 +75,32 @@ class Generator:
         self.tlag  = 0.0
         self.lmbd  = 10
         self.lmbd_sec = 2
-        self.gam   = 0.5
+        self.gam   = 1
         self.q = np.array([0.0, -0.7, 0.6,  1.3,
                            0.0,  0.9, 0.01, .001 ]).reshape(-1,1) # Holds starting angle
         self.index = 0
         
         self.count = 0
         self.timer = 0 
-
-        self.p0 = [0, 0.2, 0.2]
-        self.ppub = MarkerPublisher(self.p0)
+        self.ppub = MarkerPublisher(self.traj.getPath(0).tolist())
     
-    def init_traj():
+    def reset_traj(self):
         # resets self.traj
         # randomize paramaters
         
-        vel = random.randrange(1,7)
-        angle = random.randrange(20,80)
-        xy = random.randrange(-45,45)
-        return Trajectory(vel,angle,xy)
+        vel = random.randrange(1,7)/100
+        angle = random.randrange(20,80)*np.pi/180
+        xy = random.randrange(-45,45)*np.pi/180
+        self.traj = Trajectory(vel,angle,xy)
         
 
     
     # Return the desired position given time
     def pd(self, t):
-        return self.traj.getPath(t)
-#        return np.array([0.0, 
+        # return self.traj.getPath(t).reshape(3,1)
+        return np.array([0, np.sin(t), np.sin(t)]).reshape(3,1)
+#       
+# return np.array([0.0, 
 #                         0.95 - 10.25*math.cos(t), 
 #                         0.15 + 0.9*math.sin(t)]).reshape(3,1)
     
@@ -87,14 +112,16 @@ class Generator:
     def vd(self, t):
     ##### SDIHFUVBIABS
         (T,J) = self.kin.fkin(self.q)
-        p = p_from_T(T)
-        
-        dp = p
+        dp = self.ep(self.pd(t), p_from_T(T))
+        dt = t - self.tlag
+        dp /= dt
+        return dp.reshape(3,1)
+        #return np.array([0, -np.cos(t), -np.cos(t)]).reshape(3,1)
          
     
-        return np.array([0, 
-                         10.25*math.sin(t), 
-                         0.9*math.cos(t)]).reshape(3,1)
+        #return np.array([0, 
+        #                 10.25*math.sin(t), 
+        #                 0.9*math.cos(t)]).reshape(3,1)
     
     # Return the desired omega given s, sdot
     def wd(self, t):
@@ -115,9 +142,9 @@ class Generator:
     # Update is called every 10ms!
     def update(self, t):
         # Shut down at time 2pi
-        if t > 4*np.pi:
-            rospy.signal_shutdown("Done with motion")
-            return
+        #if t > 4*np.pi:
+        #    rospy.signal_shutdown("Done with motion")
+        #    return
             
         # Get time since last update call
         dt = t - self.tlag
@@ -147,6 +174,9 @@ class Generator:
                            -self.q[5],
                            -self.q[6], 
                            -self.q[7]]).reshape(-1,1)
+                           
+                           
+        qdot_s = np.array([0,0,0,0,0,0,0,-self.q[7]]).reshape(-1,1)
                            
                            
         # Compute the new q and qdot with the secondary task
@@ -188,19 +218,22 @@ class Generator:
         
         ## if statements here
         
-        if self.pd(t)[2] < 0 or ball hits sword:
-            self.traj = init_traj()
+        dpos = self.pd(t)
+        (Tnew, Jnew) = self.kin.fkin(self.q)
+        cpos = p_from_T(Tnew)
+        
+        if (dpos[2] < 0) or (abs(cpos[0]-dpos[0])<=0.045 and
+                             abs(cpos[1]-dpos[1])<=0.045 and
+                             abs(cpos[2]-dpos[2])<=0.045):
+            self.ppub.update([0, 0, 0])
 
             
             
         
         ## Ball Marker
         self.ppub.publish()
-#        self.ppub.update([0, 0.2, np.sin(t)])
-        self.ppub.update([self.pd(t)[0], self.pd(t)[1], self.pd(t)[2]])
-
-        self.count += 1
-        self.timer = self.timer + dt
+        print(self.pd(t).reshape(1,3)[0].tolist())
+        self.ppub.update([0, np.sin(t), np.sin(t)])
 
 
 
@@ -214,8 +247,6 @@ if __name__ == "__main__":
     # Instantiate the trajectory generator object, encapsulating all
     # the computation and local variables.
     generator = Generator()
-
-    #traj = Trajectory()
 
     # Prepare a servo loop at 100Hz.
     rate  = 100;
