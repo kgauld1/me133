@@ -97,8 +97,8 @@ class Generator:
     
     # Return the desired position given time
     def pd(self, t):
-        # return self.traj.getPath(t).reshape(3,1)
-        return np.array([0, np.sin(t), np.sin(t)]).reshape(3,1)
+         return self.traj.getPath(t).reshape(3,1)
+#        return np.array([0, np.sin(t), np.sin(t)]).reshape(3,1)
 #       
 # return np.array([0.0, 
 #                         0.95 - 10.25*math.cos(t), 
@@ -225,7 +225,7 @@ class Generator:
         if (dpos[2] < 0) or (abs(cpos[0]-dpos[0])<=0.045 and
                              abs(cpos[1]-dpos[1])<=0.045 and
                              abs(cpos[2]-dpos[2])<=0.045):
-            self.ppub.update([0, 0, 0])
+            self.ppub.update([0, 2.0, 0])
 
             
             
@@ -233,7 +233,8 @@ class Generator:
         ## Ball Marker
         self.ppub.publish()
         print(self.pd(t).reshape(1,3)[0].tolist())
-        self.ppub.update([0, np.sin(t), np.sin(t)])
+        self.ppub.update(self.pd(t))
+#        self.ppub.update([0, np.sin(t), np.sin(t)])
 
 
 
