@@ -26,29 +26,6 @@ from ballmarker import MarkerPublisher
 from splines import Goto, Hold, Goto5
 
 
-class Generator:
-    # Initialize.
-    def __init__(self):
-        # Create a publisher to send the joint commands.  Add some time
-        # for the subscriber to connect.  This isn't necessary, but means
-        # we don't start sending messages until someone is listening.
-        self.count = 0
-        self.timer = 0 
-
-        self.p0 = [0, 0.2, 0.2]
-        self.ppub = MarkerPublisher(self.p0)
-
-    
-    # Update is called every 10ms!
-    def update(self, t, dt): 
-        self.ppub.publish()
-#        self.ppub.update([0, 0.2, np.sin(t)])
-        self.ppub.update([0, np.sin(t), np.sin(t)])
-
-        self.count += 1
-        self.timer = self.timer + dt
-
-
 #
 #  Generator Class
 #
@@ -184,21 +161,27 @@ class Generator:
                ((np.eye(8) - (J_inv @ J)) @ (self.lmbd_sec*qdot_s))
         
         
-        
-        inrange = -0.06 <= self.q[7] + qdot[7][0][0]*dt <= 0.06
-        
-        if not inrange:
+        # If the forcing on the prismatic joint brings it outside of the blade,
+        # recompute the jacobian with the prismatic joint locked
+        if not -0.06 <= self.q[7] + qdot[7][0][0]*dt <= 0.06:
+            # Turn off the last column of the jacobian (prismatic joint)
             J = np.delete(J, -1, axis=1)
+            # Find the new weighted pseudoinverse
             J_inv = np.linalg.inv((J.T @ J) + (np.eye(J.shape[1]) * self.gam**2)) @ J.T
             
+            # Delete the last secondary forcing task, then recompute qdot
             qdot_s = np.delete(qdot_s, -1, axis=0)
-            
             qdot = J_inv @ (v_goal + self.lmbd*x_til) +\
                    ((np.eye(7) - (J_inv @ J)) @ (self.lmbd_sec*qdot_s))
+            
+            # Add the recomputed qdot*dt, but don't touch the last joint (leave it maxed)
             self.q[0:7] += np.array([qdot[x][0][0] for x in range(7)]).reshape(-1,1)*dt
-        
-        else:
+            
+        else: # if the joint is not locked, just add the qdot*dt term as usual
             self.q += np.array([x[0][0] for x in qdot]).reshape(-1,1)*dt # dt * qdot
+        
+        
+        
         
         # Update the current simulation time
         self.tlag = t
