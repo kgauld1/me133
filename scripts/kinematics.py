@@ -193,32 +193,29 @@ class Kinematics:
 
                 # Save the position
                 plist.append(p_from_T(T))
-
+                
                 # Save the joint axis.  The URDF <axis> is given in
                 # the local frame, so multiply by the local R matrix.
                 elist.append(R_from_T(T) @ e_from_URDF_axis(joint.axis))
                 
+                # Track joint type
                 jtype.append(joint.type)
-
                 # Advanced the "active/moving" joint number 
                 index += 1
             
             elif (joint.type == 'prismatic'):
                 # Adjust for joint angle
-                
                 T = T @ T_from_URDF_origin(joint.origin)
                 # Translate based on joint position
                 T = T @ T_from_URDF_axisdisp(joint.axis, pos[index])
                 
+                # Save p and e
                 plist.append(p_from_T(T))
-                
                 elist.append((R_from_T(T) @ e_from_URDF_axis(joint.axis))*pos[index])
                 
+                # Track joint type and advance moving joint #
                 jtype.append(joint.type)
-                
                 index += 1
-                
-                pass
     
             else:
                 # There shouldn't be any other types...
